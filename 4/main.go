@@ -18,7 +18,7 @@ func main() {
 	}
 	cardPoints := part1(file)
 	cardsScanned := part2(file)
-	fmt.Println("Card poirts:", cardPoints)
+	fmt.Println("Card points:", cardPoints)
 	fmt.Println("Cards scanned:", cardsScanned)
 }
 
