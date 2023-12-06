@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"regexp"
 	"strconv"
@@ -19,34 +20,42 @@ func main() {
 
 }
 func part1(file []byte) int {
-	closestLocation := 0
 	lines := strings.Split(string(file), "\n")
 	seeds := make([]int, 0)
 	maps := make([]map[int]int, 0)
 	var tempMap map[int]int
-	for i := range lines {
-		if len(lines[i]) == 0 {
-			maps = append(maps, tempMap)
-			tempMap = nil
+	for i, line := range lines {
+		if len(line) == 0 {
+			continue
+		}
+		if strings.Contains(line, "map") {
+			if tempMap != nil {
+				maps = append(maps, tempMap)
+			}
+			tempMap = make(map[int]int)
 			continue
 		}
 		if i == 0 {
-			seeds = readSeeds(lines[i])
+			seeds = readSeeds(line)
 			continue
 		}
-		m := createMap(lines[i])
-		if tempMap == nil {
-			tempMap = make(map[int]int)
-		}
+		m := createMap(line)
 		for k, v := range m {
 			tempMap[k] = v
 		}
-
 	}
+	maps = append(maps, tempMap)
+	closestLocation := math.MaxInt64
 	for _, seed := range seeds {
-		// 1. get the location for each seed. You have to search the []maps created.
-		// 2. the last mapped value should be the location of the seed.
-		// 3. keep the minimum found and save it to closestLocation
+		tempValue := seed
+		for _, m := range maps {
+			if v, found := m[tempValue]; found {
+				tempValue = v
+			}
+		}
+		if closestLocation > tempValue {
+			closestLocation = tempValue
+		}
 	}
 	return closestLocation
 }
