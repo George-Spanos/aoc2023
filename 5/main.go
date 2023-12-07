@@ -61,6 +61,15 @@ func readSeeds(line string) []int {
 	seeds := parseStringToIntSlice(s)
 	return seeds
 }
+func readSeedRanges(line string) []int {
+	// here we shoud create the seed ranges for part 2
+	// there could be a perf issue. But yea. Let's see
+
+	// s := strings.Split(line, ":")[1]
+	// seedRange := parseStringToIntSlice(s)
+	// return seeds
+	return []int{}
+}
 func parseStringToIntSlice(line string) []int {
 	re := regexp.MustCompile("[0-9]+")
 	numsStr := re.FindAllString(line, -1)
