@@ -10,6 +10,12 @@ import (
 	"strings"
 )
 
+type NumRange struct {
+	destStart int
+	srcStart  int
+	length    int
+}
+
 func main() {
 	file, err := os.ReadFile("input")
 	if err != nil {
@@ -22,41 +28,28 @@ func main() {
 func part1(file []byte) int {
 	lines := strings.Split(string(file), "\n")
 	seeds := make([]int, 0)
-	maps := make([]map[int]int, 0)
-	var tempMap map[int]int
+	ranges := make([][]NumRange, 0)
+	var tempRange []NumRange
 	for i, line := range lines {
 		if len(line) == 0 {
 			continue
 		}
 		if strings.Contains(line, "map") {
-			if tempMap != nil {
-				maps = append(maps, tempMap)
+			if tempRange != nil {
+				ranges = append(ranges, tempRange)
 			}
-			tempMap = make(map[int]int)
+			tempRange = make([]NumRange, 0)
 			continue
 		}
 		if i == 0 {
 			seeds = readSeeds(line)
 			continue
 		}
-		m := createMap(line)
-		for k, v := range m {
-			tempMap[k] = v
-		}
+		r := createRange(line)
+		tempRange = append(tempRange, *r)
 	}
-	maps = append(maps, tempMap)
-	closestLocation := math.MaxInt64
-	for _, seed := range seeds {
-		tempValue := seed
-		for _, m := range maps {
-			if v, found := m[tempValue]; found {
-				tempValue = v
-			}
-		}
-		if closestLocation > tempValue {
-			closestLocation = tempValue
-		}
-	}
+	ranges = append(ranges, tempRange)
+	closestLocation := findClosestLocation(seeds, ranges)
 	return closestLocation
 }
 func part2(file []byte) int {
@@ -81,11 +74,52 @@ func parseStringToIntSlice(line string) []int {
 	}
 	return nums
 }
-func createMap(line string) map[int]int {
-	m := make(map[int]int)
-	nums := parseStringToIntSlice(line)
-	for i := 0; i < nums[2]; i++ {
-		m[nums[1]+i] = nums[0] + i
+func createRange(line string) *NumRange {
+	r := NumRange{
+		destStart: 0,
+		srcStart:  0,
+		length:    0,
 	}
-	return m
+	nums := parseStringToIntSlice(line)
+	r.destStart = nums[0]
+	r.srcStart = nums[1]
+	r.length = nums[2]
+	return &r
+}
+
+func findNextValue(src int, r *NumRange) int {
+	distance := r.destStart - r.srcStart
+	return src + distance
+}
+
+// given an input int, find its range inside a NumRange slice
+func findRange(src int, ranges []NumRange) *NumRange {
+	for _, r := range ranges {
+		if inRange(src, &r) {
+			return &r
+		}
+	}
+	return nil
+}
+
+// returns true if the give in is inside the NumRange
+func inRange(src int, r *NumRange) bool {
+	return r.srcStart <= src && src < r.length+r.srcStart
+}
+
+func findClosestLocation(seeds []int, ranges [][]NumRange) int {
+	closestLocation := math.MaxInt64
+	for _, seed := range seeds {
+		tempValue := seed
+		for _, rl := range ranges {
+			r := findRange(tempValue, rl)
+			if r != nil {
+				tempValue = findNextValue(tempValue, r)
+			}
+		}
+		if closestLocation > tempValue {
+			closestLocation = tempValue
+		}
+	}
+	return closestLocation
 }
