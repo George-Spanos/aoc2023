@@ -23,7 +23,11 @@ func TestPart1(t *testing.T) {
 	}
 }
 func TestPart2(t *testing.T) {
-	t.Fatal("not implemented")
+	expected := 46
+	closestLocation := part2(ReadTestFile(t))
+	if closestLocation != expected {
+		t.Fatalf("closest location incorrect. expected %v. got %v", expected, closestLocation)
+	}
 }
 
 func TestReadSeeds(t *testing.T) {

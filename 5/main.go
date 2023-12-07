@@ -53,22 +53,51 @@ func part1(file []byte) int {
 	return closestLocation
 }
 func part2(file []byte) int {
-	log.Fatalln("not yet implemented")
-	return 0
+	lines := strings.Split(string(file), "\n")
+	seedRange := readSeedRanges(lines[0])
+	ranges := make([][]NumRange, 0)
+	var tempRange []NumRange
+	for _, line := range lines[1:] {
+		if len(line) == 0 {
+			continue
+		}
+		if strings.Contains(line, "map") {
+			if tempRange != nil {
+				ranges = append(ranges, tempRange)
+			}
+			tempRange = make([]NumRange, 0)
+			continue
+		}
+
+		r := createRange(line)
+		tempRange = append(tempRange, *r)
+	}
+	ranges = append(ranges, tempRange)
+	closestLocation := findClosestLocationRange(seedRange, ranges)
+	return closestLocation
 }
+
 func readSeeds(line string) []int {
 	s := strings.Split(line, ":")[1]
 	seeds := parseStringToIntSlice(s)
 	return seeds
 }
-func readSeedRanges(line string) []int {
-	// here we shoud create the seed ranges for part 2
-	// there could be a perf issue. But yea. Let's see
-
-	// s := strings.Split(line, ":")[1]
-	// seedRange := parseStringToIntSlice(s)
-	// return seeds
-	return []int{}
+func readSeedRanges(line string) []NumRange {
+	s := strings.Split(line, ":")[1]
+	seeds := parseStringToIntSlice(s)
+	if len(seeds)%2 != 0 {
+		log.Fatalln("seed range length should be even.")
+	}
+	seedRange := make([]NumRange, 0)
+	for i := 0; i < len(seeds); i += 2 {
+		r := NumRange{
+			srcStart:  seeds[i],
+			length:    seeds[i+1],
+			destStart: -1,
+		}
+		seedRange = append(seedRange, r)
+	}
+	return seedRange
 }
 func parseStringToIntSlice(line string) []int {
 	re := regexp.MustCompile("[0-9]+")
@@ -110,10 +139,23 @@ func findRange(src int, ranges []NumRange) *NumRange {
 	}
 	return nil
 }
+func findDestRange(dest int, ranges []NumRange) *NumRange {
+	for _, r := range ranges {
+		if inDestRange(dest, &r) {
+			return &r
+		}
+	}
+	return nil
+}
 
 // returns true if the give in is inside the NumRange
 func inRange(src int, r *NumRange) bool {
 	return r.srcStart <= src && src < r.length+r.srcStart
+}
+
+// returns true if the give in is inside the NumRange
+func inDestRange(dest int, r *NumRange) bool {
+	return r.destStart <= dest && dest < r.length+r.destStart
 }
 
 func findClosestLocation(seeds []int, ranges [][]NumRange) int {
@@ -131,4 +173,22 @@ func findClosestLocation(seeds []int, ranges [][]NumRange) int {
 		}
 	}
 	return closestLocation
+}
+func findClosestLocationRange(seeds []NumRange, ranges [][]NumRange) int {
+	limit := 100_000_000
+	for i := 0; i < limit; i++ {
+		tempValue := i
+		for j := len(ranges) - 1; j >= 0; j-- {
+			r := findDestRange(tempValue, ranges[j])
+			if r != nil {
+				tempValue += r.srcStart - r.destStart
+			}
+		}
+		seedRange := findRange(tempValue, seeds)
+		if seedRange != nil {
+			return i
+		}
+	}
+	log.Fatalln("no seed found")
+	return -1
 }
