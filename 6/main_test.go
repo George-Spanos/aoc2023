@@ -23,11 +23,10 @@ func TestPart1(t *testing.T) {
 	}
 }
 func TestPart2(t *testing.T) {
-	t.Fatal("not yet implemented")
 	file := ReadTestFile(t)
-	expected := 288
+	expected := 71503
 	got := part2(file)
 	if got != expected {
-		t.Fatalf("part 1 failed. expected %v. got %v", expected, got)
+		t.Fatalf("part 2 failed. expected %v. got %v", expected, got)
 	}
 }
