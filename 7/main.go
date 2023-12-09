@@ -23,8 +23,9 @@ var figureCardValues = map[string]int{
 	"A": 14,
 	"K": 13,
 	"Q": 12,
-	"J": 11,
+	// "J": 11, // part 1
 	"T": 10,
+	"J": 1, // part 2
 }
 
 type Hand struct {
@@ -124,13 +125,31 @@ func cpmHand(handA, handB Hand) int {
 
 func getHandType(hand Hand) int {
 	values := make(map[string]int)
+	maxValueKey := ""
+	maxValue := 0
+	jokers := 0
 	for i := 0; i < 5; i++ {
 		card := string(hand.Cards[i])
+		if string(card) == "J" {
+			jokers++
+			continue
+		}
 		if _, found := values[card]; found {
 			values[card]++
+			if values[card] > maxValue {
+				maxValue = values[card]
+				maxValueKey = string(card)
+			}
 		} else {
 			values[string(hand.Cards[i])] = 1
+			if values[card] > maxValue {
+				maxValue = values[card]
+				maxValueKey = string(card)
+			}
 		}
+	}
+	if jokers > 0 {
+		values[maxValueKey] += jokers
 	}
 	switch len(values) {
 	case 5:
