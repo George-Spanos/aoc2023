@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"regexp"
 	"strconv"
 	"strings"
 )
@@ -32,11 +31,22 @@ func part1(file []byte) int {
 }
 
 func part2(file []byte) int {
-	return -1
+	lines := strings.Split(strings.TrimSpace(string(file)), "\n")
+	sum := 0
+	for _, line := range lines {
+		nums := readLine(line)
+		for i, j := 0, len(nums)-1; i < j; i, j = i+1, j-1 {
+			nums[i], nums[j] = nums[j], nums[i]
+		}
+		prediction, err := findPrediction(nums)
+		if err == nil {
+			sum += prediction
+		}
+	}
+	return sum
 }
 func readLine(line string) []int {
-	re := regexp.MustCompile("\\d+")
-	strNums := re.FindAllString(line, -1)
+	strNums := strings.Split(line, " ")
 	if len(strNums) == 0 {
 		log.Fatalln("failed to extract numbers from line")
 	}
@@ -51,7 +61,7 @@ func readLine(line string) []int {
 	return nums
 }
 func findPrediction(numSeries []int) (int, error) {
-	if sliceHasZeros(numSeries) {
+	if sliceHasOnlyZeros(numSeries) {
 		return 0, nil
 	}
 	nextSlice := calcChildSlice(numSeries)
@@ -72,7 +82,7 @@ func calcChildSlice(s []int) []int {
 	}
 	return childSlice
 }
-func sliceHasZeros(s []int) bool {
+func sliceHasOnlyZeros(s []int) bool {
 	for i := range s {
 		if s[i] != 0 {
 			return false

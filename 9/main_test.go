@@ -24,7 +24,7 @@ func TestPart1(t *testing.T) {
 }
 func TestPart2(t *testing.T) {
 	file := ReadTestFile(t)
-	expected := 0
+	expected := 2
 	got := part2(file)
 	if got != expected {
 		t.Fatalf("part 2 failed. expected %v. got %v", expected, got)
