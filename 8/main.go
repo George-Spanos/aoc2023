@@ -17,14 +17,23 @@ func main() {
 }
 
 func part1(file []byte) int {
-	// i'm going to create a map[string][]string. Keys will be the locations and values will be the left/right location respectively.
-	// After I'm gonna move through the given path and juml from node to node till I find ZZZ.
 	lines := strings.Split(strings.TrimSpace(string(file)), "\n")
 	path := lines[0]
-	network := getNetwork(lines[3:])
-	fmt.Println(path)
-	fmt.Println(network)
-	return 0
+	network := getNetwork(lines[2:])
+	currentNode := "AAA"
+	jumps := 0
+	found := false
+	for !found {
+		for _, c := range path {
+			jumps++
+			currentNode = nextValue(currentNode, string(c), network)
+			if currentNode == "ZZZ" {
+				found = true
+				break
+			}
+		}
+	}
+	return jumps
 }
 func getNetwork(lines []string) map[string][]string {
 	nodes := make(map[string][]string)
@@ -39,5 +48,50 @@ func getNetwork(lines []string) map[string][]string {
 	return nodes
 }
 func part2(file []byte) int {
-	return 0
+	lines := strings.Split(strings.TrimSpace(string(file)), "\n")
+	path := lines[0]
+	network := getNetwork(lines[2:])
+	nodes := getStartingNodes(network)
+	jumps := 0
+out:
+	for {
+		for _, instruction := range path {
+			for i := range nodes {
+				nodes[i] = nextValue(nodes[i], string(instruction), network)
+			}
+			jumps++
+			if nodesOnZ(nodes) {
+				break out
+			}
+			fmt.Println("jumps:", jumps)
+		}
+	}
+	return jumps
+}
+func getStartingNodes(network map[string][]string) []string {
+	startingNodes := make([]string, 0)
+	for k := range network {
+		if string(k[2]) == "A" {
+			startingNodes = append(startingNodes, k)
+		}
+	}
+	return startingNodes
+}
+func nodesOnZ(nodes []string) bool {
+	for _, node := range nodes {
+		if string(node[2]) != "Z" {
+			return false
+		}
+	}
+	return true
+}
+func nextValue(node string, instruction string, network map[string][]string) string {
+	if instruction == "L" {
+		return network[node][0]
+	} else if instruction == "R" {
+		return network[node][1]
+	} else {
+		log.Fatalln("failed to parse instruction")
+	}
+	return ""
 }
