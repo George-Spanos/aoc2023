@@ -1,32 +1,57 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"testing"
 )
 
-func ReadTestFile(t *testing.T) []byte {
+func ReadTestFile(t *testing.T, i int) []byte {
 	t.Helper()
-	file, err := os.ReadFile("test_input")
+	filename := "test_input"
+	if i > 0 {
+		filename += fmt.Sprintf("_%v", i)
+	}
+	file, err := os.ReadFile(filename)
 	if err != nil {
 		t.Fatal("failed to read test input file")
 	}
 	return file
 }
-
 func TestPart1(t *testing.T) {
-	file := ReadTestFile(t)
+	file := ReadTestFile(t, 0)
 	expected := 4
 	got := part1(file)
 	if got != expected {
-		t.Fatalf("part 1 failed. expected %v. got %v", expected, got)
+		t.Fatalf("part 1 test 1 failed. expected %v. got %v", expected, got)
+	}
+	file = ReadTestFile(t, 1)
+	expected = 8
+	got = part1(file)
+	if got != expected {
+		t.Fatalf("part 1 test 2 failed. expected %v. got %v", expected, got)
 	}
 }
 func TestPart2(t *testing.T) {
-	file := ReadTestFile(t)
-	expected := -1
+	file := ReadTestFile(t, 2)
+	expected := 4
 	got := part2(file)
 	if got != expected {
-		t.Fatalf("part 2 failed. expected %v. got %v", expected, got)
+		t.Fatalf("part 2 test 1 failed. expected %v. got %v", expected, got)
+	}
+	// -----
+	file = ReadTestFile(t, 3)
+	expected = 8
+	got = part2(file)
+	if got != expected {
+		t.Fatalf("part 2 test 2 failed. expected %v. got %v", expected, got)
+	}
+	// -----
+
+	file = ReadTestFile(t, 4)
+	expected = 10
+	got = part2(file)
+	if got != expected {
+		t.Fatalf("part 2 test 3 failed. expected %v. got %v", expected, got)
 	}
 }
