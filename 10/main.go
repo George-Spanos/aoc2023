@@ -1,271 +1,165 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
-	"log"
 	"os"
-	"strings"
 )
 
-type Position struct {
-	x, y int
-}
-
-type Pipe struct {
-	Position
-	symbol string
-}
-
-func (p *Pipe) PointsTo() ([]int, []int, error) {
-	switch p.symbol {
-	case "|":
-		return []int{p.y + 1, p.x}, []int{p.y - 1, p.x}, nil
-	case "-":
-		return []int{p.y, p.x + 1}, []int{p.y, p.x - 1}, nil
-	case "F":
-		return []int{p.y + 1, p.x}, []int{p.y, p.x + 1}, nil
-	case "J":
-		return []int{p.y, p.x - 1}, []int{p.y - 1, p.x}, nil
-	case "7":
-		return []int{p.y, p.x - 1}, []int{p.y + 1, p.x}, nil
-	case "L":
-		return []int{p.y, p.x + 1}, []int{p.y - 1, p.x}, nil
-	}
-	return nil, nil, fmt.Errorf("failed to get point %v PointsTo", p)
-}
-func (p *Pipe) Right(allPipes map[int]map[int]string) Pipe {
-	x, y := p.x+1, p.y
-	pipeY, found := allPipes[y]
-	if !found {
-		log.Fatalln("right now found", p)
-	}
-	symbol, found := pipeY[x]
-	if !found {
-		log.Fatalln("right now found", p)
-	}
-	return Pipe{
-		Position: Position{
-			x: x,
-			y: y,
-		},
-		symbol: symbol,
-	}
-}
-func (p *Pipe) Left(allPipes map[int]map[int]string) Pipe {
-	x, y := p.x-1, p.y
-	pipeY, found := allPipes[y]
-	if !found {
-		log.Fatalln("right now found", p)
-	}
-	symbol, found := pipeY[x]
-	if !found {
-		log.Fatalln("right now found", p)
-	}
-	return Pipe{
-		Position: Position{
-			x: x,
-			y: y,
-		},
-		symbol: symbol,
-	}
-}
-func (p *Pipe) Down(allPipes map[int]map[int]string) Pipe {
-	x, y := p.x, p.y+1
-	pipeY, found := allPipes[y]
-	if !found {
-		log.Fatalln("right now found", p)
-	}
-	symbol, found := pipeY[x]
-	if !found {
-		log.Fatalln("right now found", p)
-	}
-	return Pipe{
-		Position: Position{
-			x: x,
-			y: y,
-		},
-		symbol: symbol,
-	}
-}
-func (p *Pipe) Up(allPipes map[int]map[int]string) Pipe {
-	x, y := p.x, p.y-1
-	pipeY, found := allPipes[y]
-	if !found {
-		log.Fatalln("right now found", p)
-	}
-	symbol, found := pipeY[x]
-	if !found {
-		log.Fatalln("right now found", p)
-	}
-	return Pipe{
-		Position: Position{
-			x: x,
-			y: y,
-		},
-		symbol: symbol,
-	}
-}
-func main() {
-	file, err := os.ReadFile("input")
-	if err != nil {
-		log.Fatalln("failed to read input file")
-	}
-	fmt.Println("Part 1:", part1(file))
-	fmt.Println("Part 2:", part2(file))
-}
-
-func part1(file []byte) int {
-	lines := strings.Split(strings.TrimSpace(string(file)), "\n")
-	pipes, startingPosition := getPipes(lines)
-	startingPipe := Pipe{
-		symbol: pipes[startingPosition.y][startingPosition.x],
-		Position: Position{
-			x: startingPosition.x,
-			y: startingPosition.y,
-		},
-	}
-	adjacentStartingPipes := getAdjacentPipes(pipes, startingPipe)
-	i := 1
-	prevPipe1 := startingPipe
-	pipe1 := adjacentStartingPipes[0]
-
-	prevPipe2 := startingPipe
-	pipe2 := adjacentStartingPipes[1]
-	// add a soft limit to the endless loop for safety
-	for i < 10_000_000 {
-		i++
-		nextPipe1 := findNextPipe(prevPipe1.Position, pipe1, pipes)
-		if nextPipe1 == nil {
-			log.Fatalln("there is no next pipe", pipe1)
+func addDirection(east bool, i int, j int, graph []string, dist map[string]int, neigbors map[string][]string) {
+	dist[fmt.Sprintf("%d_%d-%d_%d", i, j, i, j)] = 0
+	if east {
+		if j < len(graph[i])-1 {
+			if graph[i][j+1] == '-' || graph[i][j+1] == 'J' || graph[i][j+1] == '7' || graph[i][j+1] == 'S' {
+				u := fmt.Sprintf("%d_%d", i, j)
+				v := fmt.Sprintf("%d_%d", i, j+1)
+				dist[fmt.Sprintf("%s-%s", u, v)] = 1
+				dist[fmt.Sprintf("%s-%s", v, u)] = 1
+				neigbors[u] = append(neigbors[u], v)
+				neigbors[v] = append(neigbors[v], u)
+			}
 		}
-		prevPipe1, pipe1 = pipe1, *nextPipe1
-		if areEqual(pipe1, pipe2) {
-			return i
-		}
-		nextPipe2 := findNextPipe(prevPipe2.Position, pipe2, pipes)
-		if nextPipe2 == nil {
-			log.Fatalln("there is no next pipe", pipe2)
-		}
-		prevPipe2, pipe2 = pipe2, *nextPipe2
-		if areEqual(pipe1, pipe2) {
-			return i
-		}
-	}
-	return -1
-}
-func part2(file []byte) int {
-	return 0
-}
-func getPipes(lines []string) (map[int]map[int]string, Position) {
-	// maps represent y->x->symbol
-	pipes := make(map[int]map[int]string)
-	startingPipePosition := Position{x: -1, y: -1}
-	for i, line := range lines {
-		pipes[i] = make(map[int]string)
-		for j := range line {
-			if isPipeSymbol(line[j]) {
-				position := Position{
-					x: j,
-					y: i,
-				}
-				pipes[i][j] = string(line[j])
-				if string(line[j]) == "S" {
-					startingPipePosition = position
-				}
+	} else { // south
+		if i < len(graph)-1 {
+			if graph[i+1][j] == '|' || graph[i+1][j] == 'J' || graph[i+1][j] == 'L' || graph[i+1][j] == 'S' {
+				u := fmt.Sprintf("%d_%d", i, j)
+				v := fmt.Sprintf("%d_%d", i+1, j)
+				dist[fmt.Sprintf("%s-%s", u, v)] = 1
+				dist[fmt.Sprintf("%s-%s", v, u)] = 1
+				neigbors[u] = append(neigbors[u], v)
+				neigbors[v] = append(neigbors[v], u)
 			}
 		}
 	}
-	return pipes, startingPipePosition
-}
-func isPipeSymbol(s byte) bool {
-	return string(s) != "."
-}
-func getAdjacentPipes(allPipes map[int]map[int]string, pipe Pipe) []Pipe {
-	adjacentPipes := make([]Pipe, 0)
-	directions := [][]int{
-		{0, 1},
-		{0, -1},
-		{1, 0},
-		{-1, 0},
-	}
-	for _, direction := range directions {
-		x, y := pipe.x+direction[1], pipe.y+direction[0]
-		pipeY, found := allPipes[y]
-		if !found {
-			continue
-		}
-		symbol, found := pipeY[x]
-		if !found || !canBeAdjacent(pipe.symbol, symbol, direction) {
-			continue
-		}
-		pipe := Pipe{
-			symbol: symbol,
-			Position: Position{
-				y: y,
-				x: x,
-			},
-		}
-		adjacentPipes = append(adjacentPipes, pipe)
-	}
-	if len(adjacentPipes) > 2 {
-		log.Fatalln("adjacent pipes should be always <=2")
-	}
-	return adjacentPipes
-}
-func findNextPipe(prevPipePosition Position, currPipe Pipe, allPipes map[int]map[int]string) *Pipe {
-	adjPipes := getAdjacentPipes(allPipes, currPipe)
-	for _, adjPipe := range adjPipes {
-		if adjPipe.x != prevPipePosition.x || adjPipe.y != prevPipePosition.y {
-			return &adjPipe
-		}
-	}
-	return nil
-}
-func areEqual(pipeA, pipeB Pipe) bool {
-	return pipeA.symbol == pipeB.symbol && pipeA.x == pipeB.x && pipeA.y == pipeB.y
 }
 
-// Given the instructions, not all Symbols can be adjacent.
-//
-// | is a vertical pipe connecting north and south.
-//
-// - is a horizontal pipe connecting east and west.
-//
-// L is a 90-degree bend connecting north and east.
-//
-// J is a 90-degree bend connecting north and west.
-//
-// 7 is a 90-degree bend connecting south and west.
-//
-// F is a 90-degree bend connecting south and east.
-func canBeAdjacent(a, b string, direction []int) bool {
-	switch a {
-	case "|":
-		return isUp(direction, b) || isDown(direction, b)
-	case "-":
-		return isRight(direction, b) || isLeft(direction, b)
-	case "7":
-		return isDown(direction, b) || isLeft(direction, b)
-	case "F":
-		return isDown(direction, b) || isRight(direction, b)
-	case "L":
-		return isUp(direction, b) || isRight(direction, b)
-	case "J":
-		return isLeft(direction, b) || isUp(direction, b)
-	case "S":
-		return isLeft(direction, b) || isRight(direction, b) || isDown(direction, b) || isUp(direction, b)
+func buildGraph(graph []string) (string, []string, map[string]int, map[string][]string) {
+	edges := map[string]int{}
+	vertices := []string{}
+	neigbors := map[string][]string{}
+	start := ""
+
+	for i := range graph {
+		for j := range graph[i] {
+			v := fmt.Sprintf("%d_%d", i, j)
+			if graph[i][j] != '.' {
+				vertices = append(vertices, v)
+			}
+			switch graph[i][j] {
+			case 'S':
+				start = v
+				addDirection(true, i, j, graph, edges, neigbors)
+				addDirection(false, i, j, graph, edges, neigbors)
+			case '|', '7':
+				addDirection(false, i, j, graph, edges, neigbors)
+			case '-', 'L':
+				addDirection(true, i, j, graph, edges, neigbors)
+			case 'F':
+				addDirection(true, i, j, graph, edges, neigbors)
+				addDirection(false, i, j, graph, edges, neigbors)
+			}
+		}
+	}
+	return start, vertices, edges, neigbors
+}
+
+func findLoop(start, current, prev string, neighbors map[string][]string, visited map[string]bool, path *[]string) bool {
+	if start == current && len(*path) > 0 {
+		return true
+	}
+	if visited[current] {
+		return false
+	}
+	visited[current] = true
+
+	for _, v := range neighbors[current] {
+		if v == prev {
+			continue
+		}
+		*path = append(*path, v)
+		if findLoop(start, v, current, neighbors, visited, path) {
+			return true
+		}
+		*path = (*path)[:len(*path)-1]
 	}
 	return false
 }
-func isRight(direction []int, symbol string) bool {
-	return direction[1] == 1 && (symbol == "-" || symbol == "J" || symbol == "7")
+
+func part1(graph []string) int {
+	start, _, _, neighbors := buildGraph(graph)
+	visited := map[string]bool{}
+	path := []string{}
+	findLoop(start, start, start, neighbors, visited, &path)
+	return len(path) / 2
 }
-func isLeft(direction []int, symbol string) bool {
-	return direction[1] == -1 && (symbol == "L" || symbol == "F" || symbol == "-")
+
+func part2(graph []string) int {
+	s := 0
+	start, vertices, edges, neighbors := buildGraph(graph)
+	visited := map[string]bool{}
+	path := []string{}
+	findLoop(start, start, start, neighbors, visited, &path)
+
+	pathMap := map[string]bool{}
+	for _, p := range path {
+		pathMap[p] = true
+	}
+	vertMap := map[string]bool{}
+	for _, v := range vertices {
+		vertMap[v] = true
+	}
+
+	for i := range graph {
+		for j := range graph[i] {
+			v := fmt.Sprintf("%d_%d", i, j)
+			if pathMap[v] {
+				continue
+			}
+			// line
+			n := 0
+			for k := j + 1; k < len(graph[i]); k++ {
+				kv := fmt.Sprintf("%d_%d", i, k)
+				kv_1 := fmt.Sprintf("%d_%d", i, k-1)
+				kv_2 := fmt.Sprintf("%d_%d", i, k+1)
+				kv_3 := fmt.Sprintf("%d_%d", i-1, k)
+
+				if (edges[fmt.Sprintf("%s-%s", kv, kv_1)] == 1 || edges[fmt.Sprintf("%s-%s", kv, kv_2)] == 1) &&
+					edges[fmt.Sprintf("%s-%s", kv, kv_3)] == 0 {
+					continue
+				}
+
+				if pathMap[kv] {
+					n++
+				}
+			}
+			if n%2 == 1 {
+				s++
+			}
+		}
+	}
+
+	return s
 }
-func isUp(direction []int, symbol string) bool {
-	return direction[0] == -1 && (symbol == "7" || symbol == "F" || symbol == "|")
-}
-func isDown(direction []int, symbol string) bool {
-	return direction[0] == 1 && (symbol == "L" || symbol == "J" || symbol == "|")
+
+func main() {
+	if len(os.Args) < 2 {
+		fmt.Print("Usage: <filename>")
+		os.Exit(-1)
+	}
+
+	file, err := os.Open(os.Args[1])
+	if err != nil {
+		fmt.Print(err)
+		os.Exit(-1)
+	}
+	defer file.Close()
+
+	graph := []string{}
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		graph = append(graph, scanner.Text())
+	}
+
+	fmt.Println("part 1:", part1(graph))
+	fmt.Println("part 2 :", part2(graph))
 }
